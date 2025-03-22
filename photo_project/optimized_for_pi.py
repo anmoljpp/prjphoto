@@ -6,8 +6,6 @@ import numpy as np
 import tkinter as tk
 from PIL import Image, ImageTk
 from threading import Thread
-from picamera import PiCamera
-from picamera.array import PiRGBArray
 
 # Directories
 CAPTURE_DIR = "captured_images"
@@ -30,10 +28,11 @@ last_activity_time = time.time()
 border_images = [cv2.imread(img, cv2.IMREAD_UNCHANGED) for img in BORDER_IMAGES]
 border_images = [cv2.resize(img, (900, 1200)) for img in border_images]
 
-# Initialize PiCamera
-camera = PiCamera()
-camera.resolution = (1440, 900)
-raw_capture = PiRGBArray(camera, size=(1440, 900))
+# Initialize camera
+camera = cv2.VideoCapture(0)  # Use 0 for the default camera
+if not camera.isOpened():
+    print("Error: Camera not found!")
+    exit()
 
 # Initialize Tkinter window
 root = tk.Tk()
@@ -152,9 +151,15 @@ def update_frame():
     global paused, countdown_active, countdown_start_time, countdown_duration, captured_frame, border_applied_frame, last_activity_time
 
     if not paused:
-        camera.capture(raw_capture, format="bgr", use_video_port=True)
-        frame = raw_capture.array
-        raw_capture.truncate(0)
+        ret, frame = camera.read()
+        if not ret:
+            print("Error: Unable to read from camera.")
+            return
+
+        # Crop the frame to 1440x900
+        height, width, _ = frame.shape
+        crop_width = int((width - 1440) / 2)
+        frame = frame[:, crop_width:crop_width+1440]
 
         if countdown_active:
             elapsed_time = time.time() - countdown_start_time
@@ -266,5 +271,5 @@ root.bind("<ButtonPress>", on_activity)
 root.mainloop()
 
 # Release resources
-camera.close()
+camera.release()
 cv2.destroyAllWindows()
