@@ -1,0 +1,6 @@
+Flask
+opencv-python
+numpy
+pillow==9.5.0
+tk
+
