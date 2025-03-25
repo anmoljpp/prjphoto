@@ -171,16 +171,17 @@ def update_frame():
             print("Error: Unable to read from camera.")
             return
 
-        # Crop the frame to 1440x900
+        # Crop the frame to 1440x900, but now i am changing it to 640H x 460W
             height, width, _ = frame.shape
+            
+            # Crop height to 640 pixels (centered)
+            crop_height = int((height - 640) / 2)
+            frame = frame[crop_height:crop_height+640, :]
+            
+            # Crop width to 480 pixels (centered)
+            crop_width = int((width - 480) / 2)
+            frame = frame[:, crop_width:crop_width+480]
 
-            # Crop height to 480 pixels (centered)
-            crop_height = int((height - 480) / 2)
-            frame = frame[crop_height:crop_height+480, :]
-
-            # Crop width to 640 pixels (centered)
-            crop_width = int((width - 640) / 2)
-            frame = frame[:, crop_width:crop_width+640]
 
         if countdown_active:
             elapsed_time = time.time() - countdown_start_time
