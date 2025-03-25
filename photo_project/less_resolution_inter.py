@@ -101,7 +101,7 @@ for i in range(4):
     border_labels.append(label)
 
 # Camera initialization
-camera = cv2.VideoCapture(2)
+camera = cv2.VideoCapture(0)
 if not camera.isOpened():
     print("Error: Camera not found!")
     camera.release()
