@@ -45,36 +45,29 @@ text_display_area.pack(pady=5)
 button_frame = tk.Frame(main_frame)
 button_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
 
-
-
-
-# all the button coordinate and size are changed here you can change it to your desired size
-
 # Timer buttons (5s, 10s, 15s)
 timer_btn_frame = tk.Frame(button_frame)
-timer_btn_frame.pack(side=tk.TOP, pady=5, fill=tk.X)  # Added fill=tk.X to expand frame horizontally
+timer_btn_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
 
 btn_5s = tk.Button(timer_btn_frame, text="5 Second", width=20, height=3)
 btn_10s = tk.Button(timer_btn_frame, text="10 Second", width=20, height=3)
 btn_15s = tk.Button(timer_btn_frame, text="15 Second", width=20, height=3)
 
-btn_5s.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)  # Added fill=tk.X
-btn_10s.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X) # Added fill=tk.X
-btn_15s.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X) # Added fill=tk.X
-
+btn_5s.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+btn_10s.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+btn_15s.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
 # Action buttons (Save, Resume, Print)
 action_btn_frame = tk.Frame(button_frame)
-action_btn_frame.pack(side=tk.TOP, pady=5, fill=tk.X)  # Added fill=tk.X
+action_btn_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
 
 btn_save = tk.Button(action_btn_frame, text="Save", width=30, height=3)
 btn_resume = tk.Button(action_btn_frame, text="Resume", width=30, height=3)
 btn_print = tk.Button(action_btn_frame, text="Print", width=30, height=3)
 
-# Use grid layout for precise placement
-action_btn_frame.columnconfigure(0, weight=1)  # Expand first column
-action_btn_frame.columnconfigure(1, weight=1)  # Expand second column
-action_btn_frame.columnconfigure(2, weight=1)  # Expand third column
+action_btn_frame.columnconfigure(0, weight=1)
+action_btn_frame.columnconfigure(1, weight=1)
+action_btn_frame.columnconfigure(2, weight=1)
 
 btn_save.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 btn_resume.grid(row=0, column=1, sticky="ew", padx=5, pady=5)
@@ -82,38 +75,37 @@ btn_print.grid(row=0, column=2, sticky="ew", padx=5, pady=5)
 
 action_btn_frame.pack_forget()  # Initially hidden
 
-# the button size settings code ends here
-
-
-
-# Frame selection area (bottom of the screen)
+# Frame selection area
 frame_selection_frame = tk.Frame(button_frame)
 frame_selection_frame.pack(side=tk.BOTTOM, pady=5)
 
 border_labels = []
 for i in range(4):
     border_img = Image.open(BORDER_IMAGES[i])
-    border_img = border_img.resize((150, 100), Image.ANTIALIAS)  # Smaller thumbnails
+    border_img = border_img.resize((150, 100), Image.ANTIALIAS)
     border_photo = ImageTk.PhotoImage(border_img)
     label = tk.Label(frame_selection_frame, image=border_photo)
     label.image = border_photo
     label.pack(side=tk.LEFT, padx=5)
     border_labels.append(label)
 
-# Camera initialization
+# Camera initialization - CHANGED TO 480x640 (vertical)
 camera = cv2.VideoCapture(0)
 if not camera.isOpened():
     print("Error: Camera not found!")
     camera.release()
     exit()
+    
+# Set camera resolution to 480x640 (width x height) for vertical orientation
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 480)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 640)
 
-# Create a transparent overlay for dimming
+# Create overlay
 overlay = tk.Frame(root, bg="black")
-overlay.place(relwidth=1, relheight=1)  # Cover the entire window
-overlay.lift()  # Bring it to the top
-overlay.place_forget()  # Initially hidden
+overlay.place(relwidth=1, relheight=1)
+overlay.lift()
+overlay.place_forget()
 
-# Add "Sleeping" message to the overlay
 sleeping_label = tk.Label(overlay, text="Sleeping", font=("Arial", 50), fg="white", bg="black")
 sleeping_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -131,7 +123,7 @@ def save_frame(frame):
     global captured_frame, paused, border_applied_frame
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = os.path.join(CAPTURE_DIR, f"capture_{timestamp}.jpg")
-    frame_resized = cv2.resize(frame, (900, 1200))  # Resize to 1200x900
+    frame_resized = cv2.resize(frame, (900, 1200))  # Still 900x1200 for saved images
     cv2.imwrite(filename, frame_resized)
     captured_frame = frame_resized
     paused = True
@@ -171,18 +163,7 @@ def update_frame():
             print("Error: Unable to read from camera.")
             return
 
-        # Crop the frame to 1440x900, but now i am changing it to 640H x 460W
-            height, width, _ = frame.shape
-            
-            # Crop height to 640 pixels (centered)
-            crop_height = int((height - 640) / 2)
-            frame = frame[crop_height:crop_height+640, :]
-            
-            # Crop width to 480 pixels (centered)
-            crop_width = int((width - 480) / 2)
-            frame = frame[:, crop_width:crop_width+480]
-
-
+        # No cropping needed - using full 480x640 frame
         if countdown_active:
             elapsed_time = time.time() - countdown_start_time
             remaining_time = countdown_duration - int(elapsed_time)
@@ -217,21 +198,19 @@ def update_frame():
     img = img.resize((new_width, new_height), Image.ANTIALIAS)
     imgtk = ImageTk.PhotoImage(image=img)
 
-    # Clear the canvas and display the new image
     video_canvas.delete("all")
     video_canvas.create_image(
         (canvas_width - new_width) // 2, (canvas_height - new_height) // 2,
         anchor=tk.NW, image=imgtk
     )
-    video_canvas.imgtk = imgtk  # Keep a reference to avoid garbage collection
-
-    # change the timer for inactivity from 10 to any seconds you want
+    video_canvas.imgtk = imgtk
+# timer for sleep change from 120 to any number of seconds
     if time.time() - last_activity_time > 120:
-        overlay.place(relwidth=1, relheight=1)  # Show the overlay
+        overlay.place(relwidth=1, relheight=1)
     else:
-        overlay.place_forget()  # Hide the overlay
+        overlay.place_forget()
 
-    root.after(30, update_frame)  # Reduced update frequency
+    root.after(30, update_frame)
 
 def start_countdown(duration):
     global countdown_active, countdown_start_time, countdown_duration, last_activity_time
@@ -284,13 +263,11 @@ btn_print.config(command=on_print)
 # Initial state
 show_timer_buttons()
 
-# Start video feed in a separate thread
 def video_thread():
     update_frame()
 
 Thread(target=video_thread, daemon=True).start()
 
-# Track mouse movement for inactivity
 def on_activity(event):
     global last_activity_time
     last_activity_time = time.time()
