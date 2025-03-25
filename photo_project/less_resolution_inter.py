@@ -123,9 +123,40 @@ def save_frame(frame):
     global captured_frame, paused, border_applied_frame
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = os.path.join(CAPTURE_DIR, f"capture_{timestamp}.jpg")
-    frame_resized = cv2.resize(frame, (900, 1200))  # Still 900x1200 for saved images
-    cv2.imwrite(filename, frame_resized)
-    captured_frame = frame_resized
+    
+    # Get full resolution frame for capture
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)  # Set to max width
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)  # Set to max height
+    ret, hi_res_frame = camera.read()
+    
+    # Switch back to preview resolution
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 480)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 640)
+    
+    if not ret:
+        print("Error: Unable to capture hi-res frame")
+        return
+    
+    # Calculate aspect ratios
+    target_aspect = 900 / 1200  # Width/Height of target (0.75)
+    img_aspect = hi_res_frame.shape[1] / hi_res_frame.shape[0]  # Width/Height of captured image
+    
+    if img_aspect > target_aspect:
+        # Image is wider than target - crop sides
+        new_width = int(hi_res_frame.shape[0] * target_aspect)
+        x_start = (hi_res_frame.shape[1] - new_width) // 2
+        cropped = hi_res_frame[:, x_start:x_start+new_width]
+    else:
+        # Image is taller than target - crop top/bottom
+        new_height = int(hi_res_frame.shape[1] / target_aspect)
+        y_start = (hi_res_frame.shape[0] - new_height) // 2
+        cropped = hi_res_frame[y_start:y_start+new_height, :]
+    
+    # Resize to exactly 900x1200
+    resized = cv2.resize(cropped, (900, 1200))
+    
+    cv2.imwrite(filename, resized)
+    captured_frame = resized
     paused = True
     border_applied_frame = None
     text_display_area.config(text="Select frame and click Save")
