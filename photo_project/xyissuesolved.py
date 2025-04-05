@@ -7,14 +7,12 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from threading import Thread
 
-# Directories
 CAPTURE_DIR = "captured_images"
 MERGE_DIR = "merge"
 BORDER_IMAGES = ["frame1.png", "frame2.png", "frame3.png", "frame4.png"]
 os.makedirs(CAPTURE_DIR, exist_ok=True)
 os.makedirs(MERGE_DIR, exist_ok=True)
 
-# Global variables
 captured_frame = None
 paused = False
 selected_border_idx = -1
@@ -24,38 +22,31 @@ countdown_start_time = None
 countdown_duration = 0
 last_activity_time = time.time()
 
-# Initialize Tkinter window
 root = tk.Tk()
 root.title("Project Photo")
-root.attributes('-fullscreen', True)  # Make the window fullscreen
+root.attributes('-fullscreen', True) 
 
-# Configure main layout
 main_frame = tk.Frame(root)
 main_frame.pack(fill=tk.BOTH, expand=True)
 
-# Video display area (top 80% of the screen)
 video_canvas = tk.Canvas(main_frame, bg="black")
 video_canvas.pack(fill=tk.BOTH, expand=True)
 
-# Text display area (above buttons)
 text_display_area = tk.Label(main_frame, text="Select timer", font=("Arial", 16))
 text_display_area.pack(pady=5)
 
-# Button container
-button_frame = tk.Frame(main_frame, bg="#d9d9d9", height=160)  # Set specific height, but in pixels
-button_frame.pack_propagate(False)  # Prevents child widgets from resizing the frame
+button_frame = tk.Frame(main_frame, bg="#d9d9d9", height=200) 
+button_frame.pack_propagate(False)  
 button_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
 
 
-timer_btn_frame = tk.Frame(button_frame, height=80)  
-# im not packing timer_btn_frame yet - ill pack it in show_timer_buttons()
+timer_btn_frame = tk.Frame(button_frame, height=80) 
 
 btn_5s = tk.Button(timer_btn_frame, text="5 Second", width=15, height=2)
 btn_10s = tk.Button(timer_btn_frame, text="10 Second", width=15, height=2)
 btn_15s = tk.Button(timer_btn_frame, text="15 Second", width=15, height=2)
 
-# Place timer buttons, change button's x,y value in the below sections (relx, y) are the coordinates as (x,y)
 btn_5s.place(relx=0.2, y=10, width=150, height=50, anchor=tk.N)
 btn_10s.place(relx=0.5, y=10, width=150, height=50, anchor=tk.N)
 btn_15s.place(relx=0.8, y=10, width=150, height=50, anchor=tk.N)
@@ -66,12 +57,10 @@ btn_save = tk.Button(action_btn_frame, text="Save", width=15, height=2)
 btn_resume = tk.Button(action_btn_frame, text="Resume", width=15, height=2)
 btn_print = tk.Button(action_btn_frame, text="Print", width=15, height=2)
 
-# Place action buttons like resume, save and print
 btn_save.place(relx=0.2, y=10, width=150, height=50, anchor=tk.N)
 btn_resume.place(relx=0.5, y=10, width=150, height=50, anchor=tk.N)
 btn_print.place(relx=0.8, y=10, width=150, height=50, anchor=tk.N)
 
-# Frame selection area
 frame_selection_frame = tk.Frame(button_frame)
 
 border_labels = []
@@ -84,7 +73,6 @@ for i in range(4):
     label.pack(side=tk.LEFT, padx=5)
     border_labels.append(label)
 
-# Camera initialization, please change the index from 0 to any number according to your camera, if you get the error of camera not found
 camera = cv2.VideoCapture(0)
 if not camera.isOpened():
     print("Error: Camera not found!")
@@ -93,10 +81,9 @@ if not camera.isOpened():
 
 overlay = tk.Frame(root, bg="black")
 overlay.place(relwidth=1, relheight=1)  
-overlay.lift()  
-overlay.place_forget()  
+overlay.lift() 
+overlay.place_forget()
 
-# Add "Sleeping" message to the overlay, change the sleeping text from any custom text.
 sleeping_label = tk.Label(overlay, text="Sleeping", font=("Arial", 50), fg="white", bg="black")
 sleeping_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -106,23 +93,19 @@ def show_timer_buttons():
     timer_btn_frame.pack(side=tk.TOP, fill=tk.X, pady=5) 
 
 def show_action_buttons():
-    timer_btn_frame.pack_forget() 
-    action_btn_frame.pack(side=tk.TOP, fill=tk.X, pady=5)  
-    frame_selection_frame.pack(side=tk.BOTTOM, pady=5)
+    timer_btn_frame.pack_forget()  
+    action_btn_frame.pack(side=tk.TOP, fill=tk.X, pady=5) 
+    frame_selection_frame.pack(side=tk.BOTTOM, pady=5)  
 
-show_timer_buttons()  # This will properly initialize the visible buttons
-
-
+show_timer_buttons() 
 
 def save_frame(frame):
     global captured_frame, paused, border_applied_frame
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     filename = os.path.join(CAPTURE_DIR, f"capture_{timestamp}.jpg")
-    
-    # Frame is 900x1200 at this point, marking for saturday
-    
-    cv2.imwrite(filename, frame)
-    captured_frame = frame.copy()
+    frame_resized = cv2.resize(frame, (900, 1200))  
+    cv2.imwrite(filename, frame_resized)
+    captured_frame = frame_resized
     paused = True
     border_applied_frame = None
     text_display_area.config(text="Select frame and click Save")
@@ -160,27 +143,9 @@ def update_frame():
             print("Error: Unable to read from camera.")
             return
 
-        # Get frame dimensions
         height, width, _ = frame.shape
-        
-        # Target dimensions (900 width x 1200 height - PORTRAIT orientation)
-        target_width = 900
-        target_height = 1200
-        
-        # Calculate aspect ratios
-        frame_aspect = width / height
-        target_aspect = target_width / target_height
-        
-        if frame_aspect > target_aspect:
-            new_width = int(height * target_aspect)
-            left = (width - new_width) // 2
-            frame = frame[:, left:left+new_width]
-        else:
-            new_height = int(width / target_aspect)
-            top = (height - new_height) // 2
-            frame = frame[top:top+new_height, :] 
-            
-        frame = cv2.resize(frame, (target_width, target_height))
+        crop_width = int((width - 1440) / 2)
+        frame = frame[:, crop_width:crop_width+1440]
 
         if countdown_active:
             elapsed_time = time.time() - countdown_start_time
@@ -220,30 +185,15 @@ def update_frame():
         (canvas_width - new_width) // 2, (canvas_height - new_height) // 2,
         anchor=tk.NW, image=imgtk
     )
-    video_canvas.imgtk = imgtk
+    video_canvas.imgtk = imgtk  
 
     if time.time() - last_activity_time > 120:
-        overlay.place(relwidth=1, relheight=1)
+        overlay.place(relwidth=1, relheight=1)  
     else:
-        overlay.place_forget()
+        overlay.place_forget()  
 
-    root.after(30, update_frame)
+    root.after(30, update_frame) 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 def start_countdown(duration):
     global countdown_active, countdown_start_time, countdown_duration, last_activity_time
     countdown_duration = duration
@@ -281,7 +231,6 @@ def on_print():
     text_display_area.config(text="Printing...")
     last_activity_time = time.time()
 
-# Bind events
 for idx, label in enumerate(border_labels):
     label.bind("<Button-1>", lambda e, i=idx: on_border_click(e, i))
 
@@ -292,16 +241,13 @@ btn_save.config(command=on_save)
 btn_resume.config(command=on_resume)
 btn_print.config(command=on_print)
 
-# Initial state
 show_timer_buttons()
 
-# Start video feed in a separate thread
 def video_thread():
     update_frame()
 
 Thread(target=video_thread, daemon=True).start()
 
-# Track mouse movement for inactivity
 def on_activity(event):
     global last_activity_time
     last_activity_time = time.time()
@@ -311,6 +257,5 @@ root.bind("<ButtonPress>", on_activity)
 
 root.mainloop()
 
-# Release resources
 camera.release()
 cv2.destroyAllWindows()
